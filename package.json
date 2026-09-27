@@ -1,0 +1,17 @@
+
+{
+  "name": "commerceiq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "E-Commerce Intelligence & Analytics Platform",
+  "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "dev": "pnpm --parallel --filter ./apps/dashboard --filter ./services/simulator dev",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "lint": "pnpm --recursive lint"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
