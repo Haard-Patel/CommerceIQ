@@ -126,6 +126,7 @@ CREATE TABLE fact_sales (
     unit_price NUMERIC(12, 4) NOT NULL,
     revenue NUMERIC(14, 4) NOT NULL,
     is_cancelled BOOLEAN NOT NULL DEFAULT FALSE,
+    is_valid_sale BOOLEAN NOT NULL,
 
     CONSTRAINT fk_fact_sales_order
         FOREIGN KEY (order_id)

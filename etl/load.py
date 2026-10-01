@@ -305,49 +305,31 @@ def load_order_items(cursor, df: pd.DataFrame) -> None:
         f"Loaded order_items: {len(rows):,} rows"
     )
 
-
 def load_fact_sales(cursor, df: pd.DataFrame) -> None:
     """
     Load the sales fact table.
 
-    sales_id is generated automatically by PostgreSQL.
+    All transformed transaction rows are preserved.
+    is_valid_sale determines whether a row qualifies
+    as a standard financial sale.
     """
 
     rows = [
-    (
-        to_python_value(row.order_id),
-        to_python_value(row.product_id),
+        (
+            to_python_value(row.order_id),
+            to_python_value(row.product_id),
+            None if pd.isna(row.customer_id) else int(row.customer_id),
+            int(row.date_key),
+            int(row.country_key),
+            int(row.quantity),
+            float(row.unit_price),
+            float(row.revenue),
+            bool(row.is_cancelled),
+            bool(row.is_valid_sale),
+        )
+        for row in df.itertuples(index=False)
+    ]
 
-        None
-        if pd.isna(row.customer_id)
-        else int(row.customer_id),
-
-        None
-        if pd.isna(row.date_key)
-        else int(row.date_key),
-
-        None
-        if pd.isna(row.country_key)
-        else int(row.country_key),
-
-        None
-        if pd.isna(row.quantity)
-        else int(row.quantity),
-
-        None
-        if pd.isna(row.unit_price)
-        else float(row.unit_price),
-
-        None
-        if pd.isna(row.revenue)
-        else float(row.revenue),
-
-        None
-        if pd.isna(row.is_cancelled)
-        else bool(row.is_cancelled),
-    )
-    for row in df.itertuples(index=False)
-]
     query = """
         INSERT INTO fact_sales (
             order_id,
@@ -358,7 +340,8 @@ def load_fact_sales(cursor, df: pd.DataFrame) -> None:
             quantity,
             unit_price,
             revenue,
-            is_cancelled
+            is_cancelled,
+            is_valid_sale
         )
         VALUES %s
     """
@@ -373,8 +356,7 @@ def load_fact_sales(cursor, df: pd.DataFrame) -> None:
     print(
         f"Loaded fact_sales: {len(rows):,} rows"
     )
-
-
+    
 def load_all(
     customers: pd.DataFrame,
     products: pd.DataFrame,

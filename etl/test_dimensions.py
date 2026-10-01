@@ -132,6 +132,8 @@ def validate_analytical_tables(
             "without a matching date."
         )
 
+
+
     # --------------------------------------------------------
     # Fact sales → Country integrity
     # --------------------------------------------------------
@@ -192,6 +194,37 @@ def validate_analytical_tables(
             f"Found {invalid_fact_orders:,} fact sales rows "
             "without a matching order."
         )
+
+        print(
+        "Fact sales is_valid_sale count:",
+        int(fact_sales["is_valid_sale"].sum()),
+    )
+
+    expected_valid_sale_count = 524_878
+
+    assert (
+        int(fact_sales["is_valid_sale"].sum())
+        == expected_valid_sale_count
+    ), (
+        f"Expected {expected_valid_sale_count:,} valid sales, "
+        f"got {int(fact_sales['is_valid_sale'].sum()):,}"
+    )
+
+    invalid_marked_as_valid = fact_sales[
+        fact_sales["is_valid_sale"]
+        & (
+            (fact_sales["quantity"] <= 0)
+            | (fact_sales["unit_price"] <= 0)
+            | fact_sales["is_cancelled"]
+        )
+    ]
+
+    assert len(invalid_marked_as_valid) == 0, (
+        "Found fact_sales rows incorrectly marked as valid sales"
+    )
+
+    print("Fact sales valid-sale count matches expected: True")
+    print("Fact sales valid-sale business rules: True")
 
     # --------------------------------------------------------
     # Customer integrity

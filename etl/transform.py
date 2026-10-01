@@ -73,21 +73,12 @@ def transform_transactions(df: pd.DataFrame) -> pd.DataFrame:
     # --------------------------------------------------------
 
     data["IsCancelled"] = (
-        data["InvoiceNo"]
-        .str.upper()
-        .str.startswith("C")
+    data["InvoiceNo"]
+    .str.upper()
+    .str.startswith("C")
     )
 
-    # --------------------------------------------------------
-    # Classify transaction type
-    # --------------------------------------------------------
-
     data["TransactionType"] = "Sale"
-
-    data.loc[
-        data["IsCancelled"],
-        "TransactionType"
-    ] = "Cancellation"
 
     data.loc[
         data["Quantity"] < 0,
@@ -99,14 +90,25 @@ def transform_transactions(df: pd.DataFrame) -> pd.DataFrame:
         "TransactionType"
     ] = "Adjustment"
 
+    data.loc[
+        data["IsCancelled"],
+        "TransactionType"
+    ] = "Cancellation"
+
     # --------------------------------------------------------
     # Calculate line revenue
     # --------------------------------------------------------
 
+    
+    data["IsValidSale"] = (
+    (data["Quantity"] > 0)
+    & (data["UnitPrice"] > 0)
+    & (~data["IsCancelled"])
+)
+    
     data["LineRevenue"] = (
         data["Quantity"] * data["UnitPrice"]
     )
-
     # --------------------------------------------------------
     # Remove rows missing essential transaction fields
     # --------------------------------------------------------
@@ -362,15 +364,11 @@ def build_dim_country(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================
 
 def build_fact_sales(
-    df: pd.DataFrame,
+    transactions: pd.DataFrame,
     dim_date: pd.DataFrame,
     dim_country: pd.DataFrame,
 ) -> pd.DataFrame:
-    """
-    Build the fact sales table.
-    """
-
-    fact_sales = df[
+    fact_sales = transactions[
         [
             "InvoiceNo",
             "StockCode",
@@ -381,67 +379,60 @@ def build_fact_sales(
             "UnitPrice",
             "LineRevenue",
             "IsCancelled",
+            "IsValidSale",
         ]
     ].copy()
-
-    # --------------------------------------------------------
-    # Date key
-    # --------------------------------------------------------
-
-    fact_sales["calendar_date"] = (
-        fact_sales["InvoiceDate"].dt.normalize()
-    )
-
-    fact_sales = fact_sales.merge(
-        dim_date[
-            [
-                "date_key",
-                "calendar_date",
-            ]
-        ],
-        on="calendar_date",
-        how="left",
-    )
-
-    # --------------------------------------------------------
-    # Country key
-    # --------------------------------------------------------
-
-    fact_sales = fact_sales.merge(
-        dim_country[
-            [
-                "country_key",
-                "country_name",
-            ]
-        ],
-        left_on="Country",
-        right_on="country_name",
-        how="left",
-    )
-
-    # --------------------------------------------------------
-    # Rename columns
-    # --------------------------------------------------------
 
     fact_sales = fact_sales.rename(
         columns={
             "InvoiceNo": "order_id",
             "StockCode": "product_id",
             "CustomerID": "customer_id",
+            "InvoiceDate": "order_date",
+            "Country": "country",
             "Quantity": "quantity",
             "UnitPrice": "unit_price",
             "LineRevenue": "revenue",
             "IsCancelled": "is_cancelled",
+            "IsValidSale": "is_valid_sale",
         }
     )
 
-    fact_sales["customer_id"] = (
-        fact_sales["customer_id"].astype("Int64")
+    date_lookup = dim_date[
+        [
+            "date_key",
+            "calendar_date",
+        ]
+    ].copy()
+
+    date_lookup["calendar_date"] = pd.to_datetime(
+        date_lookup["calendar_date"]
+    ).dt.date
+
+    fact_sales["order_date"] = pd.to_datetime(
+        fact_sales["order_date"]
+    ).dt.date
+
+    fact_sales = fact_sales.merge(
+        date_lookup,
+        left_on="order_date",
+        right_on="calendar_date",
+        how="left",
     )
 
-    # --------------------------------------------------------
-    # Select final columns
-    # --------------------------------------------------------
+    country_lookup = dim_country[
+        [
+            "country_key",
+            "country_name",
+        ]
+    ].copy()
+
+    fact_sales = fact_sales.merge(
+        country_lookup,
+        left_on="country",
+        right_on="country_name",
+        how="left",
+    )
 
     fact_sales = fact_sales[
         [
@@ -454,7 +445,8 @@ def build_fact_sales(
             "unit_price",
             "revenue",
             "is_cancelled",
+            "is_valid_sale",
         ]
     ]
 
-    return fact_sales.reset_index(drop=True)
+    return fact_sales

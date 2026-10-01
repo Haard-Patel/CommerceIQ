@@ -230,6 +230,42 @@ def verify_fact_sales_consistency(cursor) -> None:
     """)
 
     order_item_count, fact_sales_count = cursor.fetchone()
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM fact_sales
+        WHERE is_valid_sale = TRUE
+        """
+    )
+
+    valid_sale_count = cursor.fetchone()[0]
+
+    assert valid_sale_count == 524_878, (
+        f"Expected 524,878 valid sales, "
+        f"got {valid_sale_count:,}"
+    )
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM fact_sales
+        WHERE is_valid_sale = TRUE
+          AND (
+              quantity <= 0
+              OR unit_price <= 0
+              OR is_cancelled = TRUE
+          )
+        """
+    )
+
+    invalid_marked_as_valid = cursor.fetchone()[0]
+
+    assert invalid_marked_as_valid == 0, (
+        "Found fact_sales rows incorrectly marked as valid sales"
+    )
+
+    print("Valid-sale count: 524,878")
+    print("Valid-sale business rules: passed")
 
     print(f"Order items: {order_item_count:,}")
     print(f"Fact sales:  {fact_sales_count:,}")

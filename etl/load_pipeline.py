@@ -124,6 +124,7 @@ def run_pipeline():
 
     print("\n[6/6] LOAD POSTGRESQL")
 
+
     load_all(
         customers=customers,
         products=products,
