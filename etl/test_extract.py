@@ -1,10 +1,21 @@
+from pathlib import Path
+
+import pandas as pd
+
 from etl.config import (
     RAW_DATA_DIR,
     REQUIRED_COLUMNS,
 )
 
-from etl.extract import extract_data
+from etl.extract import (
+    extract_data,
+    validate_source_schema,
+)
 
+
+# ============================================================
+# Expected source characteristics
+# ============================================================
 
 EXPECTED_ROW_COUNT = 541_909
 EXPECTED_COLUMN_COUNT = 8
@@ -17,11 +28,15 @@ SOURCE_FILES = [
 ]
 
 
+# ============================================================
+# Valid source tests
+# ============================================================
+
 def test_source_file(
     filename: str,
 ) -> None:
     """
-    Test extraction for a single source file.
+    Test extraction for a single valid source file.
     """
 
     source_path = RAW_DATA_DIR / filename
@@ -66,9 +81,127 @@ def test_all_source_formats() -> None:
         test_source_file(filename)
 
     print("\n" + "=" * 60)
+    print("ALL VALID SOURCE TESTS PASSED")
+    print("=" * 60)
+
+
+# ============================================================
+# Edge-case tests
+# ============================================================
+
+def test_missing_source_file() -> None:
+    """
+    Verify that extraction fails when the source file
+    does not exist.
+    """
+
+    missing_path = (
+        RAW_DATA_DIR
+        / "does_not_exist.csv"
+    )
+
+    print("\n" + "=" * 60)
+    print("TESTING: Missing source file")
+    print("=" * 60)
+
+    try:
+        extract_data(missing_path)
+
+    except FileNotFoundError:
+        print("PASS: Missing source file rejected")
+
+    else:
+        raise AssertionError(
+            "Expected FileNotFoundError for missing source file"
+        )
+
+
+def test_unsupported_source_format() -> None:
+    """
+    Verify that extraction rejects unsupported file formats.
+    """
+
+    unsupported_path = (
+        RAW_DATA_DIR
+        / "online_retail.txt"
+    )
+
+    print("\n" + "=" * 60)
+    print("TESTING: Unsupported source format")
+    print("=" * 60)
+
+    unsupported_path.touch()
+
+    try:
+        extract_data(unsupported_path)
+
+    except ValueError:
+        print("PASS: Unsupported format rejected")
+
+    else:
+        raise AssertionError(
+            "Expected ValueError for unsupported file format"
+        )
+
+    finally:
+        if unsupported_path.exists():
+            unsupported_path.unlink()
+
+
+def test_missing_required_column() -> None:
+    """
+    Verify that extraction rejects a dataset missing
+    a required CommerceIQ column.
+    """
+
+    print("\n" + "=" * 60)
+    print("TESTING: Missing required column")
+    print("=" * 60)
+
+    valid_data = pd.DataFrame(
+        {
+            column: []
+            for column in REQUIRED_COLUMNS
+        }
+    )
+
+    invalid_data = valid_data.drop(
+        columns=["CustomerID"]
+    )
+
+    try:
+        validate_source_schema(invalid_data)
+
+    except ValueError:
+        print("PASS: Missing required column rejected")
+
+    else:
+        raise AssertionError(
+            "Expected ValueError for missing required column"
+        )
+
+
+# ============================================================
+# Test runner
+# ============================================================
+
+def run_all_tests() -> None:
+    """
+    Run all extraction tests.
+    """
+
+    test_all_source_formats()
+
+    test_missing_source_file()
+
+    test_unsupported_source_format()
+
+    test_missing_required_column()
+
+    print("\n" + "=" * 60)
     print("ALL EXTRACTION TESTS PASSED")
     print("=" * 60)
 
 
 if __name__ == "__main__":
-    test_all_source_formats()
+    run_all_tests()
