@@ -102,6 +102,83 @@ def validate_source_schema(df: pd.DataFrame) -> None:
 
 
 # ============================================================
+# Source type normalization
+# ============================================================
+
+def normalize_source_types(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Normalize source column data types into the
+    standardized CommerceIQ extraction schema.
+
+    This ensures that Excel, CSV, and JSON sources
+    produce compatible DataFrames for downstream
+    transformation.
+    """
+
+    normalized = df.copy()
+
+    # --------------------------------------------------------
+    # Identifier columns
+    # --------------------------------------------------------
+
+    normalized["InvoiceNo"] = (
+        normalized["InvoiceNo"]
+        .astype("string")
+    )
+
+    normalized["StockCode"] = (
+        normalized["StockCode"]
+        .astype("string")
+    )
+
+    # --------------------------------------------------------
+    # Text columns
+    # --------------------------------------------------------
+
+    normalized["Description"] = (
+        normalized["Description"]
+        .astype("string")
+    )
+
+    normalized["Country"] = (
+        normalized["Country"]
+        .astype("string")
+    )
+
+    # --------------------------------------------------------
+    # Numeric columns
+    # --------------------------------------------------------
+
+    normalized["Quantity"] = pd.to_numeric(
+        normalized["Quantity"],
+        errors="raise",
+    )
+
+    normalized["UnitPrice"] = pd.to_numeric(
+        normalized["UnitPrice"],
+        errors="raise",
+    )
+
+    normalized["CustomerID"] = pd.to_numeric(
+        normalized["CustomerID"],
+        errors="coerce",
+    )
+
+    # --------------------------------------------------------
+    # Date column
+    # --------------------------------------------------------
+
+    normalized["InvoiceDate"] = pd.to_datetime(
+        normalized["InvoiceDate"],
+        errors="raise",
+    )
+
+    return normalized
+
+
+# ============================================================
 # Main extraction function
 # ============================================================
 
@@ -111,8 +188,11 @@ def extract_data(
     """
     Extract source data into a standardized pandas DataFrame.
 
-    The extraction layer supports multiple source formats while
-    returning the same DataFrame structure to downstream ETL stages.
+    The extraction layer:
+
+        1. Reads the source file.
+        2. Validates the required schema.
+        3. Normalizes column data types.
 
     Args:
         source_path:
@@ -120,7 +200,8 @@ def extract_data(
 
     Returns:
         pandas.DataFrame:
-            Extracted and schema-validated source data.
+            Extracted, schema-validated, and type-normalized
+            source data.
     """
 
     source_path = Path(source_path)
@@ -135,6 +216,8 @@ def extract_data(
     df = read_source(source_path)
 
     validate_source_schema(df)
+
+    df = normalize_source_types(df)
 
     print(f"Rows extracted: {len(df):,}")
     print(f"Columns extracted: {len(df.columns)}")

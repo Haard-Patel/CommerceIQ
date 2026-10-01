@@ -1,7 +1,3 @@
-from pathlib import Path
-
-import pandas as pd
-
 from etl.config import (
     RAW_DATA_DIR,
     REQUIRED_COLUMNS,
@@ -12,10 +8,8 @@ from etl.extract import (
     validate_source_schema,
 )
 
+import pandas as pd
 
-# ============================================================
-# Expected source characteristics
-# ============================================================
 
 EXPECTED_ROW_COUNT = 541_909
 EXPECTED_COLUMN_COUNT = 8
@@ -28,15 +22,12 @@ SOURCE_FILES = [
 ]
 
 
-# ============================================================
-# Valid source tests
-# ============================================================
-
 def test_source_file(
     filename: str,
 ) -> None:
     """
-    Test extraction for a single valid source file.
+    Test extraction and type normalization for a
+    single valid source file.
     """
 
     source_path = RAW_DATA_DIR / filename
@@ -67,14 +58,37 @@ def test_source_file(
         f"Missing required columns: {missing_columns}"
     )
 
+    assert str(df["InvoiceNo"].dtype) == "string"
+    assert str(df["StockCode"].dtype) == "string"
+    assert str(df["Description"].dtype) == "string"
+    assert str(df["Country"].dtype) == "string"
+
+    assert pd.api.types.is_numeric_dtype(
+        df["Quantity"]
+    )
+
+    assert pd.api.types.is_numeric_dtype(
+        df["UnitPrice"]
+    )
+
+    assert pd.api.types.is_numeric_dtype(
+        df["CustomerID"]
+    )
+
+    assert pd.api.types.is_datetime64_any_dtype(
+        df["InvoiceDate"]
+    )
+
     print("PASS: Row count")
     print("PASS: Column count")
     print("PASS: Required schema")
+    print("PASS: Data type normalization")
 
 
 def test_all_source_formats() -> None:
     """
-    Test extraction across all supported source formats.
+    Test extraction and normalization across
+    all supported source formats.
     """
 
     for filename in SOURCE_FILES:
@@ -84,10 +98,6 @@ def test_all_source_formats() -> None:
     print("ALL VALID SOURCE TESTS PASSED")
     print("=" * 60)
 
-
-# ============================================================
-# Edge-case tests
-# ============================================================
 
 def test_missing_source_file() -> None:
     """
@@ -118,7 +128,8 @@ def test_missing_source_file() -> None:
 
 def test_unsupported_source_format() -> None:
     """
-    Verify that extraction rejects unsupported file formats.
+    Verify that extraction rejects unsupported
+    file formats.
     """
 
     unsupported_path = (
@@ -158,6 +169,8 @@ def test_missing_required_column() -> None:
     print("TESTING: Missing required column")
     print("=" * 60)
 
+    import pandas as pd
+
     valid_data = pd.DataFrame(
         {
             column: []
@@ -180,10 +193,6 @@ def test_missing_required_column() -> None:
             "Expected ValueError for missing required column"
         )
 
-
-# ============================================================
-# Test runner
-# ============================================================
 
 def run_all_tests() -> None:
     """
