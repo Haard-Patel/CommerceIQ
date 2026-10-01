@@ -212,3 +212,36 @@ SELECT
     AVG(customer_revenue) AS average_revenue_per_customer
 
 FROM customer_metrics;
+
+
+/* ============================================================
+   5. TOP PRODUCTS BY NET REVENUE
+   ============================================================ */
+
+SELECT
+    f.product_id,
+
+    p.description,
+
+    SUM(f.quantity) AS units_sold,
+
+    COUNT(DISTINCT f.order_id) AS orders,
+
+    SUM(f.revenue) AS net_revenue
+
+FROM fact_sales AS f
+
+INNER JOIN products AS p
+    ON f.product_id = p.product_id
+
+WHERE
+    f.is_valid_sale = TRUE
+
+GROUP BY
+    f.product_id,
+    p.description
+
+ORDER BY
+    net_revenue DESC
+
+LIMIT 10;
