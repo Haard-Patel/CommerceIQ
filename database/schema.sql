@@ -26,7 +26,7 @@ CREATE TABLE products (
     description VARCHAR(255),
     first_seen_at TIMESTAMP,
     last_seen_at TIMESTAMP,
-    average_unit_price NUMERIC(12, 4)
+    average_unit_price NUMERIC(14, 4)
 );
 
 
@@ -56,8 +56,8 @@ CREATE TABLE order_items (
     order_id VARCHAR(50) NOT NULL,
     product_id VARCHAR(50) NOT NULL,
     quantity INTEGER NOT NULL,
-    unit_price NUMERIC(12, 4) NOT NULL,
-    line_revenue NUMERIC(14, 2) NOT NULL,
+    unit_price NUMERIC(14, 4) NOT NULL,
+    line_revenue NUMERIC(14, 4) NOT NULL,
 
     CONSTRAINT fk_order_items_order
         FOREIGN KEY (order_id)
@@ -109,7 +109,7 @@ CREATE TABLE fact_sales (
     country_key INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
     unit_price NUMERIC(12, 4) NOT NULL,
-    revenue NUMERIC(14, 2) NOT NULL,
+    revenue NUMERIC(14, 4) NOT NULL,
     is_cancelled BOOLEAN NOT NULL DEFAULT FALSE,
 
     CONSTRAINT fk_fact_sales_order
