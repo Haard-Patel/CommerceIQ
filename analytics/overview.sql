@@ -245,3 +245,32 @@ ORDER BY
     net_revenue DESC
 
 LIMIT 10;
+
+/* ============================================================
+   6. PRODUCT DATA QUALITY INVESTIGATION
+   ============================================================ */
+
+SELECT
+    f.product_id,
+    p.description,
+    f.order_id,
+    f.customer_id,
+    f.quantity,
+    f.unit_price,
+    f.revenue,
+    f.is_cancelled,
+    f.is_valid_sale
+
+FROM fact_sales AS f
+
+INNER JOIN products AS p
+    ON f.product_id = p.product_id
+
+WHERE
+    f.product_id IN (
+        '23843',
+        '23166'
+    )
+
+ORDER BY
+    f.quantity DESC;
