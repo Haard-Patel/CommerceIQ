@@ -6,6 +6,20 @@
 -- ============================================================
 -- CUSTOMERS
 -- ============================================================
+-- ============================================================
+-- CommerceIQ Database Schema
+-- ============================================================
+
+-- Drop existing CommerceIQ tables so the schema can be
+-- recreated consistently during development.
+
+DROP TABLE IF EXISTS fact_sales CASCADE;
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS customers CASCADE;
+DROP TABLE IF EXISTS dim_date CASCADE;
+DROP TABLE IF EXISTS dim_country CASCADE;
 
 CREATE TABLE customers (
     customer_id INTEGER PRIMARY KEY,
@@ -13,8 +27,9 @@ CREATE TABLE customers (
     first_order_date TIMESTAMP,
     last_order_date TIMESTAMP,
     order_count INTEGER DEFAULT 0,
-    total_revenue NUMERIC(14, 2) DEFAULT 0
+    total_revenue NUMERIC(14, 4) DEFAULT 0
 );
+
 
 
 -- ============================================================
@@ -26,7 +41,7 @@ CREATE TABLE products (
     description VARCHAR(255),
     first_seen_at TIMESTAMP,
     last_seen_at TIMESTAMP,
-    average_unit_price NUMERIC(14, 4)
+    average_unit_price NUMERIC(14, 0)
 );
 
 

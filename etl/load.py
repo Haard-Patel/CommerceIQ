@@ -385,26 +385,41 @@ def load_all(
     fact_sales: pd.DataFrame,
 ) -> None:
     """
-    Load all validated analytical tables into PostgreSQL.
+    Load all CommerceIQ analytical tables into PostgreSQL.
 
-    The entire operation runs inside one database transaction.
-    If any table fails to load, all changes are rolled back.
+    The analytical tables are fully refreshed on each pipeline run.
+    Existing rows are removed before the new validated dataset is loaded.
+
+    Loading occurs inside a single database transaction so that
+    a failure at any stage rolls back the complete refresh.
     """
 
     connection = None
+    cursor = None
 
     try:
         connection = get_connection()
-
         cursor = connection.cursor()
 
-        print("\n========================================")
-        print("POSTGRESQL DATA LOAD")
-        print("========================================")
+        print("\nRefreshing analytical tables...")
 
-        # ----------------------------------------------------
-        # Load parent/dimension tables first
-        # ----------------------------------------------------
+        cursor.execute(
+            """
+            TRUNCATE TABLE
+                fact_sales,
+                order_items,
+                orders,
+                customers,
+                products,
+                dim_date,
+                dim_country
+            RESTART IDENTITY CASCADE;
+            """
+        )
+
+        print("Existing analytical data cleared.")
+
+        print("\nLoading dimensions and parent tables...")
 
         load_dim_country(
             cursor,
@@ -426,14 +441,12 @@ def load_all(
             products,
         )
 
-        # ----------------------------------------------------
-        # Load dependent tables
-        # ----------------------------------------------------
-
         load_orders(
             cursor,
             orders,
         )
+
+        print("\nLoading dependent analytical tables...")
 
         load_order_items(
             cursor,
@@ -445,10 +458,6 @@ def load_all(
             fact_sales,
         )
 
-        # ----------------------------------------------------
-        # Commit transaction
-        # ----------------------------------------------------
-
         connection.commit()
 
         print("\n========================================")
@@ -456,23 +465,21 @@ def load_all(
         print("========================================")
 
     except Exception as error:
-
         if connection is not None:
             connection.rollback()
 
         print("\n========================================")
         print("POSTGRESQL LOAD FAILED")
         print("========================================")
-
         print(f"Error: {error}")
 
         raise
 
     finally:
+        if cursor is not None:
+            cursor.close()
 
         if connection is not None:
             connection.close()
 
-            print(
-                "PostgreSQL connection closed."
-            )
+        print("\nPostgreSQL connection closed.")
